@@ -1794,8 +1794,25 @@ function renderTours(){
 }
 
 function wireButtons(cid){
-  el(cid).querySelectorAll('.sv-btn').forEach(function(btn){btn.addEventListener('click',function(){var id=this.getAttribute('data-id');S.saved=S.saved.includes(id)?S.saved.filter(function(x){return x!==id;}):[...S.saved,id];this.textContent=S.saved.includes(id)?'❤️':'🤍';renderWishlist();});});
-  el(cid).querySelectorAll('.bk-btn').forEach(function(btn){btn.addEventListener('click',function(){showToast('Redirecting to booking partner... +'+this.getAttribute('data-c')+' earned! 💸');});});
+  var dest = S.dest ? S.dest.name : '';
+  el(cid).querySelectorAll('.sv-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var id=this.getAttribute('data-id');
+      S.saved=S.saved.includes(id)?S.saved.filter(function(x){return x!==id;}):[...S.saved,id];
+      this.textContent=S.saved.includes(id)?'❤️':'🤍';
+      renderWishlist();
+    });
+  });
+  el(cid).querySelectorAll('.bk-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var isViator = this.style.background.includes('6366f1') || this.style.background.includes('8b5cf6');
+      var url = isViator
+        ? 'https://www.viator.com/searchResults/all?text='+encodeURIComponent(dest)
+        : 'https://www.booking.com/searchresults.html?ss='+encodeURIComponent(dest)+'&checkin=&checkout=&group_adults='+S.people;
+      window.open(url, '_blank');
+      showToast('Opening booking page for '+dest+' 🌍');
+    });
+  });
 }
 
 function setupAIChat(){
@@ -1847,8 +1864,24 @@ function renderWishlist(){
   if(st.length){html+='<div style="color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;margin-top:8px;">🎯 Tours</div>';html+=st.map(function(t){return '<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:20px;margin-bottom:4px;">'+t.icon+'</div><div style="color:#fff;font-size:14px;font-weight:700;">'+t.name+'</div><div style="color:#555;font-size:12px;">⏱ '+t.dur+'</div><div style="color:#f59e0b;font-size:19px;font-weight:800;margin-top:6px;">$'+t.price+'<span style="color:#444;font-size:11px;">/person</span></div><div style="color:#444;font-size:11px;">$'+t.price*S.people+' for '+S.people+' people</div></div><button class="wl-sv" data-id="'+t.id+'" style="background:none;border:none;font-size:20px;cursor:pointer;">❤️</button></div><button class="wl-bk" data-c="'+t.commission+'" style="width:100%;padding:12px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:Sora,sans-serif;">Book on Viator →</button></div>';}).join('');}
   html+='<div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:13px;margin-top:8px;"><div style="color:#10b981;font-size:12px;font-weight:700;margin-bottom:4px;">💰 Your Savings</div><div style="color:#666;font-size:12px;">Saved items are <span style="color:#fff;font-weight:700;">$'+savings+'</span> cheaper than standard prices!</div></div>';
   el('wishlist-content').innerHTML=html;
-  el('wishlist-content').querySelectorAll('.wl-sv').forEach(function(btn){btn.addEventListener('click',function(){var id=this.getAttribute('data-id');S.saved=S.saved.filter(function(x){return x!==id;});renderWishlist();});});
-  el('wishlist-content').querySelectorAll('.wl-bk').forEach(function(btn){btn.addEventListener('click',function(){showToast('Redirecting... +'+this.getAttribute('data-c')+' earned! 💸');});});
+  el('wishlist-content').querySelectorAll('.wl-sv').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var id=this.getAttribute('data-id');
+      S.saved=S.saved.filter(function(x){return x!==id;});
+      renderWishlist();
+    });
+  });
+  el('wishlist-content').querySelectorAll('.wl-bk').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var dest = S.dest ? S.dest.name : '';
+      var isViator = this.style.background.includes('6366f1') || this.style.background.includes('8b5cf6');
+      var url = isViator
+        ? 'https://www.viator.com/searchResults/all?text='+encodeURIComponent(dest)
+        : 'https://www.booking.com/searchresults.html?ss='+encodeURIComponent(dest)+'&group_adults='+S.people;
+      window.open(url, '_blank');
+      showToast('Opening booking page for '+dest+' 🌍');
+    });
+  });
 }
 
 init();
