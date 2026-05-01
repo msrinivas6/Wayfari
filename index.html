@@ -1239,7 +1239,7 @@ function showToast(msg){var t=el('toast');t.textContent=msg;show('toast');setTim
 
 // ─── INIT ───
 function init(){
-  setTimeout(function(){hide('splash');show('onboarding');renderPopular();renderInterests();renderExpCats();},2500);
+  setTimeout(function(){hide('splash');show('onboarding');renderPopular();renderInterests();renderExpCats();},800);
   el('dest-search').addEventListener('input',function(){searchDest(this.value);});
   el('dest-search').addEventListener('keydown',function(e){if(e.key==='Enter')confirmSearch();});
   el('clear-btn').addEventListener('click',clearDest);
@@ -1280,14 +1280,30 @@ function init(){
   // Back and cancel from itinerary
   document.addEventListener('click',function(e){
     if(e.target && e.target.id==='it-back-btn'){
-      // Go back to step 2 (budget) to adjust days/budget
       hide('main-app');
       show('onboarding');
       goStep(2);
+      // Re-sync all sliders with current state
+      el('days-sl').value = S.days;
+      el('days-val').innerHTML = S.days+' <span style="font-size:12px;color:#555;">days</span>';
+      el('people-sl').value = S.people;
+      el('people-val').innerHTML = S.people+' <span style="font-size:12px;color:#555;">people</span>';
+      el('budget-sl').value = Math.min(S.budget, 10000);
+      el('budget-val').textContent = '$'+S.budget;
+      el('budget-sub').textContent = '$'+Math.round(S.budget/S.days/S.people)+' per person/day';
+      if(S.destData) syncBudgetTiersStep2(S.destData);
     }
     if(e.target && e.target.id==='it-cancel-btn'){
-      // Start completely fresh
+      // Full reset
       S.dest=null;S.destData=null;S.activeDay=1;S.saved=[];
+      S.days=5;S.people=2;S.budget=1000;S.needsAI=false;
+      el('days-sl').value=5;
+      el('days-val').innerHTML='5 <span style="font-size:12px;color:#555;">days</span>';
+      el('people-sl').value=2;
+      el('people-val').innerHTML='2 <span style="font-size:12px;color:#555;">people</span>';
+      el('budget-sl').value=1000;
+      el('budget-val').textContent='$1000';
+      el('budget-sub').textContent='$100 per person/day';
       hide('main-app');
       show('onboarding');
       clearDest();
@@ -1329,17 +1345,18 @@ function confirmSearch(){var val=el('dest-search').value.trim();if(val)selectDes
 
 function selectDest(d){
   S.dest=d;
-  // Look up by key first, then by lowercase name
-  var key = d.key || d.name.toLowerCase().replace(/\s+/g,'');
+  // Look up by key first, then by lowercase name with spaces removed
+  var key = d.key || d.name.toLowerCase().replace(/\s+/g,'').replace(/[^a-z]/g,'');
   var data = DB[key] || DB[d.name.toLowerCase()] || null;
-  // Also try partial match
+  // Also try name match
   if(!data){
     var keys = Object.keys(DB);
     for(var i=0;i<keys.length;i++){
       if(DB[keys[i]].name.toLowerCase()===d.name.toLowerCase()){data=DB[keys[i]];break;}
     }
   }
-  S.destData = data || makeGenericData(d.name, d.emoji);
+  S.destData = data || null;
+  S.needsAI = !data;
   hide('search-results');el('dest-search').value='';
   hide('popular-section');show('selected-dest');
   el('sel-emoji').textContent=d.emoji;
@@ -1525,6 +1542,12 @@ function generateAIData(destName, emoji, days, budget, people, interests, onSucc
 }
 
 function buildTrip(){
+  // Always reset active day so itinerary starts fresh
+  S.activeDay = 1;
+  // Sync state from current slider values (in case user changed them)
+  S.days = parseInt(el('days-sl').value) || S.days;
+  S.people = parseInt(el('people-sl').value) || S.people;
+  S.budget = parseInt(el('budget-sl').value) || S.budget;
   hide('onboarding');show('generating');
   if(S.needsAI){
     // Unknown city — use AI with internet
@@ -1731,26 +1754,36 @@ function renderDayTabs(){
 function d(){return S.destData;}
 
 function renderActivities(){
-  var dayData=d().days[(S.activeDay-1)%d().days.length];
+  if(!d()||!d().days||!d().days.length){
+    el('acts-list').innerHTML='<div style="text-align:center;padding:30px;color:#555;">No activities found for this destination.</div>';
+    return;
+  }
+  var dayIdx=(S.activeDay-1)%d().days.length;
+  var dayData=d().days[dayIdx];
+  if(!dayData||!dayData.activities||!dayData.activities.length){
+    el('acts-list').innerHTML='<div style="text-align:center;padding:30px;color:#555;">No activities for Day '+S.activeDay+'.</div>';
+    return;
+  }
   var acts=dayData.activities;
-  var daySpent=acts.reduce(function(a,b){return a+b.cost;},0);
+  var daySpent=acts.reduce(function(a,b){return a+(b.cost||0);},0);
   var remaining=Math.max(0,S.budget-daySpent*S.activeDay);
-  var pct=(remaining/S.budget)*100;
-  el('day-title').innerHTML='Day '+S.activeDay+' <span style="color:#f59e0b;font-size:12px;font-weight:600;">— '+dayData.theme+'</span>';
+  var pct=Math.min(100,(remaining/S.budget)*100);
+  el('day-title').innerHTML='Day '+S.activeDay+' <span style="color:#f59e0b;font-size:12px;font-weight:600;">— '+(dayData.theme||'Activities')+'</span>';
   el('it-left').textContent='$'+remaining+' left';
   el('it-bar').style.width=pct+'%';
   el('day-total').textContent='$'+daySpent;
   el('day-saved').textContent='$'+Math.round(daySpent*0.45);
   el('acts-list').innerHTML=acts.map(function(a,i){
     return '<div style="display:flex;gap:11px;align-items:flex-start;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'+
-      '<div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">'+a.icon+'</div>'+
-      '<div style="flex:1;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="color:#fff;font-size:13px;font-weight:700;">'+a.name+'</div>'+(i===0?'<span style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;">⭐ Must See</span>':'')+'</div>'+
-      '<div style="color:#444;font-size:11px;margin-top:2px;">🕐 '+a.time+'</div>'+
-      '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);border-radius:9px;padding:7px 10px;margin-top:8px;color:#888;font-size:11px;line-height:1.5;"><span style="color:#818cf8;font-weight:700;">💡 Insider: </span>'+a.tip+'</div></div>'+
-      '<div style="color:'+(a.cost===0?'#10b981':'#fff')+';font-weight:800;font-size:14px;flex-shrink:0;text-align:right;">'+(a.cost===0?'<span style="background:rgba(16,185,129,0.15);border-radius:8px;padding:3px 8px;font-size:12px;">FREE</span>':'$'+a.cost)+'</div></div>';
+      '<div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">'+(a.icon||'📍')+'</div>'+
+      '<div style="flex:1;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="color:#fff;font-size:13px;font-weight:700;">'+(a.name||'Activity')+'</div>'+(i===0?'<span style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;">⭐ Must See</span>':'')+'</div>'+
+      '<div style="color:#444;font-size:11px;margin-top:2px;">🕐 '+(a.time||'')+'</div>'+
+      (a.tip?'<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);border-radius:9px;padding:7px 10px;margin-top:8px;color:#888;font-size:11px;line-height:1.5;"><span style="color:#818cf8;font-weight:700;">💡 Insider: </span>'+a.tip+'</div>':'')+
+      '</div>'+
+      '<div style="color:'+((a.cost===0)?'#10b981':'#fff')+';font-weight:800;font-size:14px;flex-shrink:0;text-align:right;">'+((a.cost===0)?'<span style="background:rgba(16,185,129,0.15);border-radius:8px;padding:3px 8px;font-size:12px;">FREE</span>':'$'+(a.cost||0))+'</div></div>';
   }).join('');
-  el('acts-list').innerHTML+='<div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:13px;margin-top:12px;display:flex;gap:10px;"><span style="font-size:18px;">📅</span><div><div style="color:#10b981;font-size:11px;font-weight:700;margin-bottom:3px;">Best Time to Visit '+d().name+'</div><div style="color:#888;font-size:12px;">'+d().bestTime+'</div></div></div>';
-  el('acts-list').innerHTML+='<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:13px;margin-top:10px;display:flex;gap:10px;"><span style="font-size:18px;">🔑</span><div><div style="color:#818cf8;font-size:11px;font-weight:700;margin-bottom:3px;">Wayfari Insider for '+d().name+'</div><div style="color:#888;font-size:12px;">'+d().localTip+'</div></div></div>';
+  if(d().bestTime) el('acts-list').innerHTML+='<div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:13px;margin-top:12px;display:flex;gap:10px;"><span style="font-size:18px;">📅</span><div><div style="color:#10b981;font-size:11px;font-weight:700;margin-bottom:3px;">Best Time to Visit '+d().name+'</div><div style="color:#888;font-size:12px;">'+d().bestTime+'</div></div></div>';
+  if(d().localTip) el('acts-list').innerHTML+='<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:13px;margin-top:10px;display:flex;gap:10px;"><span style="font-size:18px;">🔑</span><div><div style="color:#818cf8;font-size:11px;font-weight:700;margin-bottom:3px;">Wayfari Insider for '+d().name+'</div><div style="color:#888;font-size:12px;">'+d().localTip+'</div></div></div>';
 }
 
 function renderBooking(){
