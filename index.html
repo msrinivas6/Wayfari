@@ -1775,7 +1775,7 @@ function renderHotels(){
       '<div style="display:flex;gap:5px;margin-bottom:8px;"><span style="background:#10b981;border-radius:6px;padding:2px 7px;color:#fff;font-size:11px;font-weight:700;">'+h.rating+'</span><span style="color:#555;font-size:11px;">'+h.reviews.toLocaleString()+' reviews</span></div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">'+h.perks.map(function(p){return '<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:3px 8px;color:#666;font-size:11px;">✓ '+p+'</span>';}).join('')+'</div>'+
       '<div style="background:rgba(245,158,11,0.06);border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;"><span style="color:#555;font-size:12px;">Total '+S.days+' nights</span><span style="color:#fff;font-weight:800;">$'+h.price*S.days+'</span></div>'+
-      '<a class="bk-btn" href="https://www.booking.com/searchresults.html?ss='+encodeURIComponent(S.dest?S.dest.name:"")+"&group_adults="+S.people+'" target="_blank" rel="noopener" style="display:block;width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;font-weight:800;font-size:14px;text-align:center;text-decoration:none;font-family:Sora,sans-serif;box-sizing:border-box;">Book on Booking.com →</a></div>';
+      '<button class="bk-btn" data-type="booking" style="width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#000;font-weight:800;font-size:14px;cursor:pointer;font-family:Sora,sans-serif;">Book on Booking.com →</button></div>';
   }).join('');wireButtons('hotels-list');
 }
 
@@ -1789,12 +1789,11 @@ function renderTours(){
       '<div style="display:flex;align-items:baseline;gap:7px;margin-bottom:8px;"><span style="color:#f59e0b;font-size:24px;font-weight:800;">$'+t.price+'</span><span style="color:#444;font-size:12px;text-decoration:line-through;">$'+t.orig+'</span><span style="color:#10b981;font-size:11px;font-weight:700;">'+disc+'% off</span><span style="color:#444;font-size:11px;">/person</span></div>'+
       '<div style="background:rgba(99,102,241,0.08);border-radius:9px;padding:8px 11px;margin-bottom:8px;"><div style="color:#818cf8;font-size:10px;font-weight:700;margin-bottom:2px;">INCLUDES</div><div style="color:#666;font-size:12px;">'+t.includes+'</div></div>'+
       '<div style="background:rgba(245,158,11,0.06);border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;"><span style="color:#555;font-size:12px;">Total '+S.people+' people</span><span style="color:#fff;font-weight:800;">$'+t.price*S.people+'</span></div>'+
-      '<a class="bk-btn" href="https://www.viator.com/searchResults/all?text='+encodeURIComponent(S.dest?S.dest.name:"")+"'" target="_blank" rel="noopener" style="display:block;width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:800;font-size:14px;text-align:center;text-decoration:none;font-family:Sora,sans-serif;box-sizing:border-box;">Book on Viator →</a></div>';
+      '<button class="bk-btn" data-type="viator" style="width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:Sora,sans-serif;">Book on Viator →</button></div>';
   }).join('');wireButtons('tours-list');
 }
 
 function wireButtons(cid){
-  var dest = S.dest ? S.dest.name : '';
   el(cid).querySelectorAll('.sv-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
       var id=this.getAttribute('data-id');
@@ -1805,12 +1804,17 @@ function wireButtons(cid){
   });
   el(cid).querySelectorAll('.bk-btn').forEach(function(btn){
     btn.addEventListener('click',function(){
-      var isViator = this.style.background.includes('6366f1') || this.style.background.includes('8b5cf6');
-      var url = isViator
-        ? 'https://www.viator.com/searchResults/all?text='+encodeURIComponent(dest)
-        : 'https://www.booking.com/searchresults.html?ss='+encodeURIComponent(dest)+'&checkin=&checkout=&group_adults='+S.people;
-      window.open(url, '_blank');
-      showToast('Opening booking page for '+dest+' 🌍');
+      var dest=S.dest?encodeURIComponent(S.dest.name):'';
+      var type=this.getAttribute('data-type');
+      var url=type==='viator'
+        ?'https://www.viator.com/searchResults/all?text='+dest
+        :'https://www.booking.com/searchresults.html?ss='+dest+'&group_adults='+S.people;
+      var link=document.createElement('a');
+      link.href=url;link.target='_blank';link.rel='noopener noreferrer';
+      link.style.display='none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(function(){document.body.removeChild(link);},100);
     });
   });
 }
@@ -1938,8 +1942,8 @@ function renderWishlist(){
   var all=d().hotels.concat(d().tours),saved=all.filter(function(i){return S.saved.includes(i.id);}),savings=saved.reduce(function(a,b){return a+(b.orig-b.price);},0);
   var sh=d().hotels.filter(function(h){return S.saved.includes(h.id);}),st=d().tours.filter(function(t){return S.saved.includes(t.id);});
   var html='';
-  if(sh.length){html+='<div style="color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🏨 Hotels</div>';html+=sh.map(function(h){return '<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="color:#fff;font-size:14px;font-weight:700;">'+h.name+'</div><div style="color:#555;font-size:12px;">📍 '+h.area+'</div><div style="color:#f59e0b;font-size:19px;font-weight:800;margin-top:6px;">$'+h.price+'<span style="color:#444;font-size:11px;">/night</span></div><div style="color:#444;font-size:11px;">$'+h.price*S.days+' for '+S.days+' nights</div></div><button class="wl-sv" data-id="'+h.id+'" style="background:none;border:none;font-size:20px;cursor:pointer;">❤️</button></div><button class="wl-bk" data-c="'+h.commission+'" style="display:block;width:100%;padding:12px;border-radius:13px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;font-weight:800;font-size:14px;text-align:center;text-decoration:none;font-family:Sora,sans-serif;box-sizing:border-box;">Book Now →</a></div>';}).join('');}
-  if(st.length){html+='<div style="color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;margin-top:8px;">🎯 Tours</div>';html+=st.map(function(t){return '<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:20px;margin-bottom:4px;">'+t.icon+'</div><div style="color:#fff;font-size:14px;font-weight:700;">'+t.name+'</div><div style="color:#555;font-size:12px;">⏱ '+t.dur+'</div><div style="color:#f59e0b;font-size:19px;font-weight:800;margin-top:6px;">$'+t.price+'<span style="color:#444;font-size:11px;">/person</span></div><div style="color:#444;font-size:11px;">$'+t.price*S.people+' for '+S.people+' people</div></div><button class="wl-sv" data-id="'+t.id+'" style="background:none;border:none;font-size:20px;cursor:pointer;">❤️</button></div><button class="wl-bk" data-c="'+t.commission+'" style="display:block;width:100%;padding:12px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:800;font-size:14px;text-align:center;text-decoration:none;font-family:Sora,sans-serif;box-sizing:border-box;">Book on Viator →</a></div>';}).join('');}
+  if(sh.length){html+='<div style="color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🏨 Hotels</div>';html+=sh.map(function(h){return '<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="color:#fff;font-size:14px;font-weight:700;">'+h.name+'</div><div style="color:#555;font-size:12px;">📍 '+h.area+'</div><div style="color:#f59e0b;font-size:19px;font-weight:800;margin-top:6px;">$'+h.price+'<span style="color:#444;font-size:11px;">/night</span></div><div style="color:#444;font-size:11px;">$'+h.price*S.days+' for '+S.days+' nights</div></div><button class="wl-sv" data-id="'+h.id+'" style="background:none;border:none;font-size:20px;cursor:pointer;">❤️</button></div><button class="wl-bk" data-c="'+h.commission+'" style="width:100%;padding:12px;border-radius:13px;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#000;font-weight:800;font-size:14px;cursor:pointer;font-family:Sora,sans-serif;">Book Now →</button></div>';}).join('');}
+  if(st.length){html+='<div style="color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;margin-top:8px;">🎯 Tours</div>';html+=st.map(function(t){return '<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:20px;margin-bottom:4px;">'+t.icon+'</div><div style="color:#fff;font-size:14px;font-weight:700;">'+t.name+'</div><div style="color:#555;font-size:12px;">⏱ '+t.dur+'</div><div style="color:#f59e0b;font-size:19px;font-weight:800;margin-top:6px;">$'+t.price+'<span style="color:#444;font-size:11px;">/person</span></div><div style="color:#444;font-size:11px;">$'+t.price*S.people+' for '+S.people+' people</div></div><button class="wl-sv" data-id="'+t.id+'" style="background:none;border:none;font-size:20px;cursor:pointer;">❤️</button></div><button class="wl-bk" data-c="'+t.commission+'" style="width:100%;padding:12px;border-radius:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:Sora,sans-serif;">Book on Viator →</button></div>';}).join('');}
   html+='<div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:13px;margin-top:8px;"><div style="color:#10b981;font-size:12px;font-weight:700;margin-bottom:4px;">💰 Your Savings</div><div style="color:#666;font-size:12px;">Saved items are <span style="color:#fff;font-weight:700;">$'+savings+'</span> cheaper than standard prices!</div></div>';
   el('wishlist-content').innerHTML=html;
   el('wishlist-content').querySelectorAll('.wl-sv').forEach(function(btn){
