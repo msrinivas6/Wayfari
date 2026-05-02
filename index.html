@@ -12,7 +12,7 @@ body{font-family:'Sora',sans-serif;background:#0a0a0f;min-height:100vh;display:f
 ::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
 #app{width:100%;max-width:430px;height:100vh;background:#13131a;position:relative;overflow:hidden;}
 @media(min-width:500px){#app{height:780px;min-height:unset;border-radius:48px;box-shadow:0 0 0 1px #222,0 40px 80px rgba(0,0,0,0.8);}}
-.screen{position:absolute;top:0;left:0;right:0;bottom:60px;overflow-y:auto;overflow-x:hidden;padding:12px 20px 20px;-webkit-overflow-scrolling:touch;}
+.screen{position:absolute;top:0;left:0;right:0;bottom:60px;display:flex;flex-direction:column;overflow:hidden;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
@@ -123,29 +123,33 @@ input::placeholder{color:#444;}
   <div style="width:100%;background:rgba(255,255,255,0.08);border-radius:8px;height:6px;overflow:hidden;"><div id="gen-bar" style="height:100%;background:linear-gradient(90deg,#6366f1,#f59e0b);border-radius:8px;width:0%;transition:width 0.5s ease;"></div></div>
 </div>
 <div id="main-app" class="hidden">
-  <div id="screen-itinerary" class="screen" style="padding-top:12px;">
-    <!-- Back & Cancel nav -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+  <div id="screen-itinerary" class="screen hidden" style="padding:0;display:flex;flex-direction:column;">
+    <!-- Sticky header - never scrolls away -->
+    <div style="flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:12px 20px 10px;background:#13131a;border-bottom:1px solid rgba(255,255,255,0.06);z-index:10;">
       <button id="it-back-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:7px 14px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;">← Back</button>
       <button id="it-cancel-btn" style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);border-radius:12px;padding:7px 14px;color:#f43f5e;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;">✕ New Trip</button>
     </div>
-    <div class="lbl" id="it-lbl" style="margin-bottom:2px;"></div>
-    <div class="h1" style="margin-bottom:12px;">Your Trip Plan 🗓️</div>
-    <div id="budget-banner" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 16px;margin-bottom:10px;"></div>
-    <div id="transport-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 16px;margin-bottom:10px;display:none;"></div>
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#aaa;font-size:13px;">Trip Budget</span><span id="it-left" style="color:#10b981;font-weight:700;font-size:13px;"></span></div>
-      <div class="bar"><div class="bf" id="it-bar" style="width:100%;"></div></div>
-    </div>
-    <div style="display:flex;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;-webkit-overflow-scrolling:touch;" id="day-tabs"></div>
-    <div id="day-title" style="color:#fff;font-size:14px;font-weight:700;margin-bottom:12px;"></div>
-    <div id="acts-list"></div>
-    <div class="card" style="margin-top:16px;margin-bottom:20px;display:flex;justify-content:space-between;">
-      <div><div style="color:#555;font-size:12px;">Day Total</div><div id="day-total" style="color:#fff;font-size:22px;font-weight:800;"></div></div>
-      <div style="text-align:right;"><div style="color:#555;font-size:12px;">You save vs tourist</div><div id="day-saved" style="color:#10b981;font-size:22px;font-weight:800;"></div></div>
+    <!-- Scrollable content area -->
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 20px 24px;">
+      <div class="lbl" id="it-lbl" style="margin-bottom:2px;"></div>
+      <div class="h1" style="margin-bottom:12px;">Your Trip Plan 🗓️</div>
+      <div id="budget-banner" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 16px;margin-bottom:10px;"></div>
+      <div id="transport-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 16px;margin-bottom:10px;display:none;"></div>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#aaa;font-size:13px;">Trip Budget</span><span id="it-left" style="color:#10b981;font-weight:700;font-size:13px;"></span></div>
+        <div class="bar"><div class="bf" id="it-bar" style="width:100%;"></div></div>
+      </div>
+      <div style="display:flex;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;-webkit-overflow-scrolling:touch;" id="day-tabs"></div>
+      <div id="day-title" style="color:#fff;font-size:14px;font-weight:700;margin-bottom:12px;"></div>
+      <div id="acts-list"></div>
+      <div class="card" style="margin-top:16px;margin-bottom:8px;display:flex;justify-content:space-between;">
+        <div><div style="color:#555;font-size:12px;">Day Total</div><div id="day-total" style="color:#fff;font-size:22px;font-weight:800;"></div></div>
+        <div style="text-align:right;"><div style="color:#555;font-size:12px;">You save vs tourist</div><div id="day-saved" style="color:#10b981;font-size:22px;font-weight:800;"></div></div>
+      </div>
     </div>
   </div>
-  <div id="screen-booking" class="screen hidden">
+  <div id="screen-booking" class="screen hidden" style="padding:0;">
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:50px 20px 24px;">
     <div class="lbl" id="bk-lbl"></div>
     <div class="h1">Hotels &amp; Tours 🏨</div>
     <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:12px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;">
@@ -155,6 +159,7 @@ input::placeholder{color:#444;}
       <button class="tab-btn on" id="tab-hotels">🏨 Hotels</button><button class="tab-btn" id="tab-tours">🎯 Tours</button>
     </div>
     <div id="hotels-list"></div><div id="tours-list" class="hidden"></div>
+    </div>
   </div>
   <div id="screen-ai" class="chat-wrap hidden">
     <div style="padding:50px 20px 13px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
